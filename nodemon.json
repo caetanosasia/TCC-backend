@@ -1,0 +1,7 @@
+{
+    "env": {
+        "JWT_KEY": "newKey",
+        "APP_URL": "http://localhost:3000",
+        "PORT": "3333"
+    }
+}
