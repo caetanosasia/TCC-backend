@@ -10,7 +10,6 @@ const routes = express.Router();
 //DataController
 routes.post('/insert-data', DataController.create);
 routes.get('/get-data', DataController.index);
-routes.get('/drop-table', DataController.dropTable);
-
+routes.delete('/delete-data', DataController.drop);
 
 module.exports = routes;
