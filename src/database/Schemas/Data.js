@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 
 const dataSchema = new mongoose.Schema({
     data: {},
+    email: String,
     updatedAt: {
         type: Date,
         required: true,

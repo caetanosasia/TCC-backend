@@ -1,5 +1,6 @@
 const connection = require('../database/connection');
-const crypto = require('crypto');
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
 const mongoose = require('mongoose');
 const Data = require('../database/Schemas/Data');
 
@@ -9,7 +10,9 @@ mongoose.connect("mongodb://localhost:");
 module.exports = {
     async index(request, response) {
         try {
-            const data = await Data.find();
+            const token = request.headers.authorization.split(' ')[1];
+            const { email } = jwt.verify(token, process.env.JWT_KEY);
+            const data = await Data.find({ email });
             let cleanData = {};
             data.forEach((item) => {
                 const { updatedAt, id } = item;
@@ -43,6 +46,14 @@ module.exports = {
      async create(request, response){
         try {
             const { body } = request;
+            const { token } = request.headers;
+            const { email } = jwt.verify(token, process.env.SERVER_SECRET);
+
+            const verifyToken = await connection('users').select('*').where({ email });
+
+            if(verifyToken.length === 0) return response.status(404).send({ msg: 'Usuário inexistente' });
+            if(verifyToken[0].token !== token) return response.status(401).send({ msg: 'Token expirado' });
+
             const values = Object.values(body);
             const keys = Object.keys(body);
             const data = {};
@@ -52,7 +63,7 @@ module.exports = {
                     value: values[i],
                 } 
             });
-            const row = await Data.create({ data });
+            const row = await Data.create({ data, email });
             await row.save();
             return response.status(200).send({ msg: 'Dado inserido no BD com sucesso' });
         } catch (err) {
