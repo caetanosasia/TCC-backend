@@ -140,7 +140,7 @@ function sendEmailVerification(email, token) {
         port: 587,
         secureConnection: false,
         auth: {
-            user: 'tccvinicae@outlook.com',
+            user: process.env.EMAIL,
             pass: process.env.EMAIL_PASSWORD
         },
         tls: {
@@ -148,7 +148,7 @@ function sendEmailVerification(email, token) {
         }
     });
     const mailOptions = {
-        from: 'tccvinicae@outlook.com',
+        from: process.env.EMAIL,
         to: email,
         subject: 'Verificação de conta',
         html: "Oi,<br> Por favor, clicar no seguinte link para verificar o seu email: <br><a href="+link+">Clique aqui.</a>"
