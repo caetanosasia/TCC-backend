@@ -141,7 +141,7 @@ function sendEmailVerification(email, token) {
         secureConnection: false,
         auth: {
             user: 'tccvinicae@outlook.com',
-            pass: 'caevini123'
+            pass: process.env.EMAIL_PASSWORD
         },
         tls: {
             ciphers:'SSLv3'
