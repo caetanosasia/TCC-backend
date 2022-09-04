@@ -2,8 +2,7 @@ exports.up = function(knex) {
     return knex.schema.createTable('users', function (table) {
       table.string('email').primary();
       table.string('password').notNullable;
-      table.string('token');
-      table.string('verified').notNullable;
+      table.boolean('verified').notNullable;
       table.string('name').notNullable;
     })
   };

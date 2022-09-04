@@ -12,8 +12,12 @@ module.exports = {
         try {
             const token = request.headers.authorization.split(' ')[1];
             const { email } = jwt.verify(token, process.env.JWT_KEY);
-            const data = await Data.find({ email });
+            console.log(email);
+            const { experimentId } = request.params;
+
+            const data = await Data.find({ email, experimentId });
             let cleanData = {};
+            console.log(data);
             data.forEach((item) => {
                 const { updatedAt, id } = item;
                 if(!item.data) return;
@@ -47,9 +51,8 @@ module.exports = {
         try {
             const { body } = request;
             const { token } = request.headers;
-            const { email } = jwt.verify(token, process.env.SERVER_SECRET);
-
-            const verifyToken = await connection('users').select('*').where({ email });
+            const { email, id } = jwt.verify(token, process.env.EXP_SECRET);
+            const verifyToken = await connection('experiments').select('*').where({ id });
 
             if(verifyToken.length === 0) return response.status(404).send({ msg: 'Usuário inexistente' });
             if(verifyToken[0].token !== token) return response.status(401).send({ msg: 'Token expirado' });
@@ -63,7 +66,7 @@ module.exports = {
                     value: values[i],
                 } 
             });
-            const row = await Data.create({ data, email });
+            const row = await Data.create({ data, email, experimentId: id });
             await row.save();
             return response.status(200).send({ msg: 'Dado inserido no BD com sucesso' });
         } catch (err) {

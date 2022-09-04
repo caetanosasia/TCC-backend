@@ -53,7 +53,11 @@ module.exports = {
                 if(err) return response.status(401).send({ msg: 'Falha na autenticação' });
                 if(res) {
                     const token = jwt.sign({ email, name: result[0].name }, process.env.JWT_KEY, { expiresIn: '1y' });
-                    return response.status(200).send({ token, user: result[0] });
+                    return response.status(200).send({ token, user: {
+                        "email": result[0].email,
+                        "verified": result[0].verified,
+                        "name": result[0].name
+                    } });
                 }
                 return response.status(401).send({ msg: 'Falha na autenticação' });
             })
@@ -67,7 +71,11 @@ module.exports = {
             const { token } = request.body;
             const decode = jwt.verify(token, process.env.JWT_KEY);
             const user = await connection('users').select('*').where({ email: decode.email });
-            return response.status(200).send({ msg: 'Sessão válida', user: user[0] });
+            return response.status(200).send({ msg: 'Sessão válida', user: {
+                "email": user[0].email,
+                "verified": user[0].verified,
+                "name": user[0].name
+            }});
         } catch(err) {
             return response.status(401).send({ msg: 'Falha na autenticação, faça login novamente' });
         }
@@ -140,7 +148,7 @@ function sendEmailVerification(email, token) {
         port: 587,
         secureConnection: false,
         auth: {
-            user: process.env.EMAIL,
+            user: process.env.EMAIL_TCC,
             pass: process.env.EMAIL_PASSWORD
         },
         tls: {
@@ -148,11 +156,12 @@ function sendEmailVerification(email, token) {
         }
     });
     const mailOptions = {
-        from: process.env.EMAIL,
+        from: process.env.EMAIL_TCC,
         to: email,
         subject: 'Verificação de conta',
         html: "Oi,<br> Por favor, clicar no seguinte link para verificar o seu email: <br><a href="+link+">Clique aqui.</a>"
     };
+    console.log(process.env.EMAIL, process.env.EMAIL_PASSWORD)
     transporter.sendMail(mailOptions, (err, info) => {
         if(err) return console.log(err);
         console.log(info);
