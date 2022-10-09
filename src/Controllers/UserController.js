@@ -52,7 +52,7 @@ module.exports = {
             bcrypt.compare(password, result[0].password, (err, res) => {
                 if(err) return response.status(401).send({ msg: 'Falha na autenticação' });
                 if(res) {
-                    const token = jwt.sign({ email, name: result[0].name }, process.env.JWT_KEY, { expiresIn: '1y' });
+                    const token = jwt.sign({ email, name: result[0].name }, process.env.JWT_KEY, { expiresIn: '1d' });
                     return response.status(200).send({ token, user: {
                         "email": result[0].email,
                         "verified": result[0].verified,

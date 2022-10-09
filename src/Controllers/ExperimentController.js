@@ -57,11 +57,14 @@ module.exports = {
             const { email } = jwt.verify(sessionToken, process.env.JWT_KEY);
             const { experimentId } = request.body;
             const experiment = await connection('experiments').select('*').where({ id: experimentId });
+            if(email != experiment[0].email) {
+                return response.status(403).send({ msg: 'Usuário inválido' });
+            }
             if(experiment.length === 0) return response.status(404).send({ msg: 'Experimento inexistente' });
             await connection('experiments').select('*').where({ id: experimentId }).delete();
             const name = experiment[0].name;
-            sendMessage(email, `O experimento "${name}" foi deletado com sucesso.`, 'Experimento deletado');
-            return response.status(200).send({ msg: 'Token reenviado com sucesso' });
+            sendMessage(experiment[0].email, `O experimento "${name}" foi deletado com sucesso.`, 'Experimento deletado');
+            return response.status(200).send({ msg: 'Experimento deletado com sucesso' });
         } catch(err) {
             return response.status(500).send({ msg: err });
         }
