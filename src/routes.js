@@ -21,7 +21,7 @@ routes.post('/login', UserController.login);
 routes.post('/session', UserController.session);
 routes.post('/patch-password', UserController.patchPassword);
 routes.get('/verify-account/:token', UserController.verifyAccount);
-routes.post('/resend-email-verification', UserController.resendEmailVerification);
+routes.post('/resend-email-verification', logged, UserController.resendEmailVerification);
 
 //ExperimentController
 routes.get('/experiments',logged, ExperimentController.index);

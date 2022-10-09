@@ -39,15 +39,13 @@ module.exports = {
     },
     async resendExperimentToken(request, response){
         try {
-            const sessionToken = request.headers.authorization.split(' ')[1];
-            const { email } = jwt.verify(sessionToken, process.env.JWT_KEY);
+            console.log('teste');
             const { experimentId } = request.body;
             const experiment = await connection('experiments').select('*').where({ id: experimentId });
             if(experiment.length === 0) return response.status(404).send({ msg: 'Experimento inexistente' });
             const experimentToken = experiment[0].token;
             const name = experiment[0].name;
-            sendEmailWithExperimentToken(email, experimentToken, name);
-            console.log('teste');
+            sendEmailWithExperimentToken(experiment[0].email, experimentToken, name);
             return response.status(200).send({ msg: 'Token reenviado com sucesso' });
         } catch(err) {
             return response.status(500).send({ msg: err });

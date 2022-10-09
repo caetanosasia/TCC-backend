@@ -11,7 +11,7 @@ module.exports = {
             try {
                 if(errBcrypt) return response.status(500).send(({ error: errBcrypt }));
                 const result  = await connection('users').select('*').where({ email });
-                if(result.length > 0) return response.status(409).send({ msg: 'Usuário já cadastrado' });
+                if(result.length > 0) return response.status(409).send({ msg: 'User already exists' });
                 await connection('users').insert({
                     email,
                     password: hash,
@@ -24,7 +24,7 @@ module.exports = {
                     send_date: new Date(),
                 })
                 sendEmailVerification(email, emailToken);
-                return response.status(200).send({ msg: 'Usuário criado com sucesso', createdUser: { email } });
+                return response.status(201).send({ msg: 'Usuário criado com sucesso', createdUser: { email } });
             } catch (err) {
                 return response.status(500).send({ msg: err });
             }
