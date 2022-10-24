@@ -1,7 +1,10 @@
 const connection = require('../database/connection');
 const crypto = require('crypto');
+const Data = require('../database/Schemas/Data');
 const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
+const mongoose = require('mongoose');
+mongoose.connect("mongodb://localhost:");
 
 module.exports = {
     async index(request, response) {
@@ -51,6 +54,44 @@ module.exports = {
             return response.status(500).send({ msg: err });
         }
     },
+    async experimentToExport(request, response) {
+        try {
+            const token = request.headers.authorization.split(' ')[1];
+            const { email } = jwt.verify(token, process.env.JWT_KEY);
+            const { experimentId } = request.params;
+            const keys = {};
+            const data = await Data.find({ email, experimentId });
+            let cleanData = [];
+            data.forEach((item) => {
+                if(!item.data) return;
+                const itemData = Object.values(item.data);
+                itemData.forEach(subItem => {
+                    const { key } = subItem;
+                    if(keys[key] === undefined) {
+                        keys[key] = null;
+                    }
+                })
+            });
+            data.forEach((item) => {
+                const { updatedAt } = item;
+                if(!item.data) return;
+                const itemData = {};
+                const data = Object.values(item.data);
+                data.forEach(a => {
+                    itemData[a.key] = a.value
+                });
+                cleanData.push({
+                    ...keys,
+                    ...itemData,
+                    time: updatedAt
+                });
+            });
+            console.log(cleanData);
+            return response.status(200).send(cleanData);
+        } catch (err) {
+            return response.status(500).send({ msg: err, func: 'get' });
+        }
+    },
     async deleteExperiment(request, response){
         try {
             const sessionToken = request.headers.authorization.split(' ')[1];
@@ -62,6 +103,7 @@ module.exports = {
             }
             if(experiment.length === 0) return response.status(404).send({ msg: 'Experimento inexistente' });
             await connection('experiments').select('*').where({ id: experimentId }).delete();
+            Data.find({ experimentId }).deleteMany().exec();
             const name = experiment[0].name;
             sendMessage(experiment[0].email, `O experimento "${name}" foi deletado com sucesso.`, 'Experimento deletado');
             return response.status(200).send({ msg: 'Experimento deletado com sucesso' });

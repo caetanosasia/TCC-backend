@@ -1,23 +1,18 @@
 const connection = require('../database/connection');
-const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const mongoose = require('mongoose');
 const Data = require('../database/Schemas/Data');
-
 mongoose.connect("mongodb://localhost:");
-
 
 module.exports = {
     async index(request, response) {
         try {
             const token = request.headers.authorization.split(' ')[1];
             const { email } = jwt.verify(token, process.env.JWT_KEY);
-            console.log(email);
             const { experimentId } = request.params;
 
             const data = await Data.find({ email, experimentId });
             let cleanData = {};
-            console.log(data);
             data.forEach((item) => {
                 const { updatedAt, id } = item;
                 if(!item.data) return;

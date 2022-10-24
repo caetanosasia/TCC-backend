@@ -28,5 +28,6 @@ routes.get('/experiments',logged, ExperimentController.index);
 routes.post('/experiments',logged, ExperimentController.create);
 routes.delete('/experiments',logged, ExperimentController.deleteExperiment);
 routes.post('/resend-experiment-token', logged, ExperimentController.resendExperimentToken);
+routes.get('/experiment-to-export/:experimentId', logged, ExperimentController.experimentToExport);
 
 module.exports = routes;
