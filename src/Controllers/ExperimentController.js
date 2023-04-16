@@ -26,7 +26,6 @@ module.exports = {
             const token = request.headers.authorization.split(' ')[1];
             const { email } = jwt.verify(token, process.env.JWT_KEY);
             const experimentToken = jwt.sign({ email, name, id }, process.env.EXP_SECRET);
-            console.log('teste')
             sendEmailWithExperimentToken(email, experimentToken, name);
             await connection('experiments').insert({
                 id,
@@ -42,7 +41,6 @@ module.exports = {
     },
     async resendExperimentToken(request, response){
         try {
-            console.log('teste');
             const { experimentId } = request.body;
             const experiment = await connection('experiments').select('*').where({ id: experimentId });
             if(experiment.length === 0) return response.status(404).send({ msg: 'Experimento inexistente' });
@@ -86,7 +84,6 @@ module.exports = {
                     time: updatedAt
                 });
             });
-            console.log(cleanData);
             return response.status(200).send(cleanData);
         } catch (err) {
             return response.status(500).send({ msg: err, func: 'get' });
@@ -133,10 +130,7 @@ function sendMessage(email, message, title) {
         subject: title,
         html: message
     };
-    transporter.sendMail(mailOptions, (err, info) => {
-        if(err) return console.log(err);
-        console.log(info);
-    } );
+    transporter.sendMail(mailOptions);
 }
 
 function sendEmailWithExperimentToken(email, token, name) {
@@ -158,8 +152,5 @@ function sendEmailWithExperimentToken(email, token, name) {
         subject: `Experimento: "${name}"`,
         html: `Oi, o token para o experimento "${name}" é: <br>${token}<br>`
     };
-    transporter.sendMail(mailOptions, (err, info) => {
-        if(err) return console.log(err);
-        console.log(info);
-    } );
+    transporter.sendMail(mailOptions);
 }

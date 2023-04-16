@@ -51,7 +51,6 @@ module.exports = {
     }, 
     async changePassword(request, response){
         const { token, password } = request.body;
-        console.log('teste')
         try {
             const { email } = jwt.verify(token, process.env.EMAIL_KEY);
             const result  = await connection('users').select('*').where({ email }); //verifico se o e-mail existe   
@@ -201,10 +200,7 @@ function sendEmailVerification(email, token) {
         subject: 'Verificação de conta',
         html: "Oi,<br> Por favor, clicar no seguinte link para verificar o seu email: <br><a href="+link+">Clique aqui.</a>"
     };
-    transporter.sendMail(mailOptions, (err, info) => {
-        if(err) return console.log(err);
-        console.log(info);
-    } );
+    transporter.sendMail(mailOptions);
 }
 
 function sendChangedPasswordNotification(email) {
@@ -226,10 +222,7 @@ function sendChangedPasswordNotification(email) {
         subject: 'Senha alterada',
         html: "Oi,<br>sua senha foi alterada com sucesso.<br>"
     };
-    transporter.sendMail(mailOptions, (err, info) => {
-        if(err) return console.log(err);
-        console.log(info);
-    } );
+    transporter.sendMail(mailOptions);
 }
 function sendEmailToChangePassword(email, token) {
     const link = `${process.env.FRONT_HOST}/change-password/${token}`
@@ -252,8 +245,5 @@ function sendEmailToChangePassword(email, token) {
         html: `Oi,<br> Por favor, clicar no seguinte link para recuperar sua senha: <br><a href="${link}">Clique aqui.</a>
                 <span>Se você não solicitou a recuperação de senha, por favor, ignore este email.</span>` //o link expira em 1 hora
     };
-    transporter.sendMail(mailOptions, (err, info) => {
-        if(err) return console.log(err);
-        console.log(info);
-    } );
+    transporter.sendMail(mailOptions);
 }
