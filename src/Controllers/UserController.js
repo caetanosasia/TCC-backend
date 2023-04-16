@@ -25,10 +25,50 @@ module.exports = {
                 })
                 sendEmailVerification(email, emailToken);
                 return response.status(201).send({ msg: 'Usuário criado com sucesso', createdUser: { email } });
-            } catch (err) {
-                return response.status(500).send({ msg: err });
+            } catch (error) {
+                return response.status(500).send({ error });
             }
         });
+    }, 
+    async recoverPasswordSendEmail(request, response){
+        const { email } = request.body;
+        try {
+            const result  = await connection('users').select('*').where({ email }); //verifico se o e-mail existe   
+            if(result.length === 0) return response.status(204).send(); //se não existir apenas respondo que tá ok para não dar dica de que o e-mail existe
+            const emailToken = jwt.sign({ email }, process.env.EMAIL_KEY); //crio o token para consumir na rota de troca de senha
+            await connection('forgot_password').insert({
+                token: emailToken,
+                changed: false,
+                email,
+                send_date: new Date(),
+                expires_in: new Date(Date.now() + 3600000)
+            }) //crio o histórico de troca de senha e adiciono uma data de expiração e o token
+            sendEmailToChangePassword(email, emailToken); //envio o e-mail para o usuário
+            return response.status(204).send();
+        } catch (error) {
+            return response.status(500).send({ error });
+        }
+    }, 
+    async changePassword(request, response){
+        const { token, password } = request.body;
+        console.log('teste')
+        try {
+            const { email } = jwt.verify(token, process.env.EMAIL_KEY);
+            const result  = await connection('users').select('*').where({ email }); //verifico se o e-mail existe   
+            const tokenResult  = await connection('forgot_password').select('*').where({ token }); //verifico se o token existe   
+            if(result.length === 0 || tokenResult.length === 0) return response.status(404).send({ error: 'email not found' }); //se não existir apenas respondo que tá ok para não dar dica de que o e-mail existe
+            if(tokenResult[0].changed) return response.status(409).send({ error: 'Token already used' }); //se o token já foi usado
+            if(tokenResult[0].expires_in < new Date()) return response.status(409).send({ error: 'Token expired' }); //se o token já foi expirou
+            bcrypt.hash(password, 10, async (errBcrypt, hash) => {
+                if(errBcrypt) return response.status(500).send(({ error: errBcrypt }));
+                await connection('users').where('email', email).update({ password: hash });
+                await connection('forgot_password').where('token', token).update({ changed: true });
+                sendChangedPasswordNotification(email);
+                return response.status(204).send();
+            });
+        } catch (error) {
+            return response.status(500).send({ error });
+        }
     },
      async drop(request, response){
         try {
@@ -40,8 +80,8 @@ module.exports = {
             await connection('users').where('email', email).delete();
 
             return response.status(200).send({ msg: 'Usuário deletado com sucesso', deletedUser: { email } });
-        } catch (err) {
-            return response.status(500).send({ msg: err });
+        } catch (error) {
+            return response.status(500).send({ error });
         }
     },
     async login(request, response){
@@ -62,8 +102,8 @@ module.exports = {
                 return response.status(401).send({ msg: 'Falha na autenticação' });
             })
 
-        } catch(err) {
-            return response.status(500).send({ msg: err });
+        } catch(error) {
+            return response.status(500).send({ error });
         }
     },
     async session(request, response){ 
@@ -76,8 +116,8 @@ module.exports = {
                 "verified": user[0].verified,
                 "name": user[0].name
             }});
-        } catch(err) {
-            return response.status(401).send({ msg: 'Falha na autenticação, faça login novamente' });
+        } catch(error) {
+            return response.status(401).send({ error: 'Falha na autenticação, faça login novamente' });
         }
     },
     async generateToken(request, response){
@@ -87,8 +127,8 @@ module.exports = {
             const tokenToReturn = jwt.sign({ email, name }, process.env.SERVER_SECRET, { expiresIn: '1y' });
             await connection('users').update({ token: tokenToReturn }).where({ email });
             return response.status(200).send({ token: tokenToReturn });
-        } catch(err) {
-            return response.status(500).send({ msg: err });
+        } catch(error) {
+            return response.status(500).send({ error });
         }
     },
     async patchPassword(request, response){ 
@@ -105,8 +145,8 @@ module.exports = {
                 await connection('users').where({ email }).update({ password: hash, role });
                 return response.status(200).send({ msg: 'Usuário atualizado com sucesso'});
 
-            }   catch(err) {
-                return response.status(500).send({ msg: err });
+            }   catch(error) {
+                return response.status(500).send({ error });
             }
         });
     },
@@ -119,8 +159,8 @@ module.exports = {
             await connection('users').where({ email }).update({ verified: true });
             await connection('verify_email').where({ token }).delete();
             return response.status(200).send("conta verificada com sucesso");
-        } catch(err) {
-            return response.status(500).send({ msg: err });
+        } catch(error) {
+            return response.status(500).send({ error });
         }
     },
     async resendEmailVerification(request, response){
@@ -135,8 +175,8 @@ module.exports = {
             })
             sendEmailVerification(email, emailToken);
             return response.status(200).send({ msg: 'Email reenviado com sucesso' });
-        } catch (err) {
-            return response.status(500).send({ msg: err });
+        } catch (error) {
+            return response.status(500).send({ error });
         }
     },
 }
@@ -161,7 +201,57 @@ function sendEmailVerification(email, token) {
         subject: 'Verificação de conta',
         html: "Oi,<br> Por favor, clicar no seguinte link para verificar o seu email: <br><a href="+link+">Clique aqui.</a>"
     };
-    console.log(process.env.EMAIL, process.env.EMAIL_PASSWORD)
+    transporter.sendMail(mailOptions, (err, info) => {
+        if(err) return console.log(err);
+        console.log(info);
+    } );
+}
+
+function sendChangedPasswordNotification(email) {
+    const transporter = nodemailer.createTransport({
+        host: "smtp-mail.outlook.com",
+        port: 587,
+        secureConnection: false,
+        auth: {
+            user: process.env.EMAIL_TCC,
+            pass: process.env.EMAIL_PASSWORD
+        },
+        tls: {
+            ciphers:'SSLv3'
+        }
+    });
+    const mailOptions = {
+        from: process.env.EMAIL_TCC,
+        to: email,
+        subject: 'Senha alterada',
+        html: "Oi,<br>sua senha foi alterada com sucesso.<br>"
+    };
+    transporter.sendMail(mailOptions, (err, info) => {
+        if(err) return console.log(err);
+        console.log(info);
+    } );
+}
+function sendEmailToChangePassword(email, token) {
+    const link = `${process.env.FRONT_HOST}/change-password/${token}`
+    const transporter = nodemailer.createTransport({
+        host: "smtp-mail.outlook.com",
+        port: 587,
+        secureConnection: false,
+        auth: {
+            user: process.env.EMAIL_TCC,
+            pass: process.env.EMAIL_PASSWORD
+        },
+        tls: {
+            ciphers:'SSLv3'
+        }
+    });
+    const mailOptions = {
+        from: process.env.EMAIL_TCC,
+        to: email,
+        subject: 'Recupração de senha',
+        html: `Oi,<br> Por favor, clicar no seguinte link para recuperar sua senha: <br><a href="${link}">Clique aqui.</a>
+                <span>Se você não solicitou a recuperação de senha, por favor, ignore este email.</span>` //o link expira em 1 hora
+    };
     transporter.sendMail(mailOptions, (err, info) => {
         if(err) return console.log(err);
         console.log(info);

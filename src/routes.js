@@ -16,6 +16,8 @@ routes.delete('/delete-data', DataController.drop);
 
 //UserController
 routes.post('/create-user', UserController.create);
+routes.post('/recover-password', UserController.recoverPasswordSendEmail);
+routes.post('/change-password', UserController.changePassword);
 routes.delete('/delete-user', UserController.drop);
 routes.post('/login', UserController.login);
 routes.post('/session', UserController.session);
