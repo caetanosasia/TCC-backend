@@ -2,7 +2,7 @@ const connection = require('../database/connection');
 const jwt = require('jsonwebtoken');
 const mongoose = require('mongoose');
 const Data = require('../database/Schemas/Data');
-mongoose.connect("mongodb://localhost:");
+mongoose.connect(process.env.MONGODB_URI || "mongodb://localhost:");
 
 module.exports = {
     async index(request, response) {

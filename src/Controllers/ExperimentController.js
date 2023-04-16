@@ -4,7 +4,7 @@ const Data = require('../database/Schemas/Data');
 const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
 const mongoose = require('mongoose');
-mongoose.connect("mongodb://localhost:");
+mongoose.connect(process.env.MONGODB_URI || "mongodb://localhost:");
 
 module.exports = {
     async index(request, response) {
