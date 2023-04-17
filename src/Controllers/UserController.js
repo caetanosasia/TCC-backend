@@ -6,9 +6,11 @@ const nodemailer = require('nodemailer');
 
 module.exports = {
      async create(request, response){
+        console.log("create user", request.body);
         const { name, password, email } = request.body;
          bcrypt.hash(password, 10, async (errBcrypt, hash) => {
             try {
+                console.log("bcrypt", errBcrypt);
                 if(errBcrypt) return response.status(500).send(({ error: errBcrypt }));
                 const result  = await connection('users').select('*').where({ email });
                 if(result.length > 0) return response.status(409).send({ msg: 'User already exists' });
@@ -18,11 +20,13 @@ module.exports = {
                     name,
                     verified: false
                 })
+                console.log("inseriu no banco");
                 const emailToken = jwt.sign({ email }, process.env.EMAIL_KEY);
                 await connection('verify_email').insert({
                     token: emailToken,
                     send_date: new Date(),
                 })
+                console.log("enviando email");
                 sendEmailVerification(email, emailToken);
                 return response.status(201).send({ msg: 'Usuário criado com sucesso', createdUser: { email } });
             } catch (error) {
