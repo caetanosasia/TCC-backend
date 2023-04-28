@@ -113,8 +113,8 @@ module.exports = {
 
 function sendMessage(email, message, title) {
     const transporter = nodemailer.createTransport({
-        host: "smtp-mail.outlook.com",
-        port: 587,
+        host: process.env.SMTP,
+        port: process.env.SMTP_PORT,
         secureConnection: false,
         auth: {
             user: process.env.EMAIL_TCC,
@@ -135,8 +135,8 @@ function sendMessage(email, message, title) {
 
 function sendEmailWithExperimentToken(email, token, name) {
     const transporter = nodemailer.createTransport({
-        host: "smtp-mail.outlook.com",
-        port: 587,
+        host: process.env.SMTP,
+        port: process.env.SMTP_PORT,
         secureConnection: false,
         auth: {
             user: process.env.EMAIL_TCC,

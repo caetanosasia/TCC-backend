@@ -64,8 +64,8 @@ module.exports = {
             if(tokenResult[0].expires_in < new Date()) return response.status(409).send({ error: 'Token expired' }); //se o token já foi expirou
             bcrypt.hash(password, 10, async (errBcrypt, hash) => {
                 if(errBcrypt) return response.status(500).send(({ error: errBcrypt }));
-                await connection('users').where('email', email).update({ password: hash });
-                await connection('forgot_password').where('token', token).update({ changed: true });
+                await connection('users').where('email', email).update({ password: hash, updated_at: new Date() });
+                await connection('forgot_password').where('token', token).update({ changed: true, updated_at: new Date() });
                 sendChangedPasswordNotification(email);
                 return response.status(204).send();
             });
@@ -91,6 +91,7 @@ module.exports = {
         try {
             const { email, password } = request.body;
             const result = await connection('users').select('*').where({ email });
+            console.log("result", result);
             if(result.length === 0) return response.status(403).send({ msg: 'Falha na autenticação' });
             bcrypt.compare(password, result[0].password, (err, res) => {
                 if(err) return response.status(401).send({ msg: 'Falha na autenticação' });
@@ -128,7 +129,7 @@ module.exports = {
             const token = request.headers.authorization.split(' ')[1];
             const { email, name } = jwt.verify(token, process.env.JWT_KEY);
             const tokenToReturn = jwt.sign({ email, name }, process.env.SERVER_SECRET, { expiresIn: '1y' });
-            await connection('users').update({ token: tokenToReturn }).where({ email });
+            await connection('users').update({ token: tokenToReturn }).where({ email, updated_at: new Date() });
             return response.status(200).send({ token: tokenToReturn });
         } catch(error) {
             return response.status(500).send({ error });
@@ -145,7 +146,7 @@ module.exports = {
                 const result = await connection('users').select('*').where({ email });
                 if(result.length === 0) return response.status(404).send({ msg: 'Usuário não encontrado'})
             
-                await connection('users').where({ email }).update({ password: hash, role });
+                await connection('users').where({ email }).update({ password: hash, role, updated_at: new Date() });
                 return response.status(200).send({ msg: 'Usuário atualizado com sucesso'});
 
             }   catch(error) {
@@ -159,7 +160,7 @@ module.exports = {
             const { email } = jwt.verify(token, process.env.EMAIL_KEY);
             const result = await connection('verify_email').select('*').where({ token });
             if(result.length === 0) return response.status(404).send({ msg: 'Token inválido' });
-            await connection('users').where({ email }).update({ verified: true });
+            await connection('users').where({ email }).update({ verified: true, updated_at: new Date() });
             await connection('verify_email').where({ token }).delete();
             return response.status(200).send("conta verificada com sucesso");
         } catch(error) {
@@ -187,8 +188,8 @@ module.exports = {
 function sendEmailVerification(email, token) {
     const link = `${process.env.HOST}/verify-account/${token}`
     const transporter = nodemailer.createTransport({
-        host: "smtp-mail.outlook.com",
-        port: 587,
+        host: process.env.SMTP,
+        port: process.env.SMTP_PORT,
         secureConnection: false,
         auth: {
             user: process.env.EMAIL_TCC,
@@ -209,8 +210,8 @@ function sendEmailVerification(email, token) {
 
 function sendChangedPasswordNotification(email) {
     const transporter = nodemailer.createTransport({
-        host: "smtp-mail.outlook.com",
-        port: 587,
+        host: process.env.SMTP,
+        port: process.env.SMTP_PORT,
         secureConnection: false,
         auth: {
             user: process.env.EMAIL_TCC,
@@ -229,10 +230,11 @@ function sendChangedPasswordNotification(email) {
     transporter.sendMail(mailOptions);
 }
 function sendEmailToChangePassword(email, token) {
-    const link = `${process.env.FRONT_HOST}/change-password/${token}`
+    const link = `${process.env.FRONT_HOST}/change-password/${token}`;
+    console.log(process.env.SMTP);
     const transporter = nodemailer.createTransport({
-        host: "smtp-mail.outlook.com",
-        port: 587,
+        host: process.env.SMTP,
+        port: process.env.SMTP_PORT,
         secureConnection: false,
         auth: {
             user: process.env.EMAIL_TCC,

@@ -5,6 +5,7 @@ exports.up = function(knex) {
       table.boolean('changed').notNullable;
       table.string('send_date').notNullable;
       table.string('expires_in').notNullable;
+      table.timestamps(true, true);
     })
   };
   

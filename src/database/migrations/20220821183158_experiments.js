@@ -5,6 +5,7 @@ exports.up = function(knex) {
       table.string('token');
       table.string('name').notNullable;
       table.string('description').notNullable;
+      table.timestamps(true, true);
     })
   };
   

@@ -4,6 +4,7 @@ exports.up = function(knex) {
       table.string('password').notNullable;
       table.boolean('verified').notNullable;
       table.string('name').notNullable;
+      table.timestamps(true, true);
     })
   };
   
